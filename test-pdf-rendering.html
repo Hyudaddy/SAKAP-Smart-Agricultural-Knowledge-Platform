@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Rendering Test</title>
+</head>
+<body>
+    <h1>PDF Rendering Test</h1>
+    
+    <h2>Direct PDF URL Test</h2>
+    <p>Testing direct access to PDF file:</p>
+    <iframe src="http://localhost:5031/uploads/file-1759055459248-422698810.pdf" width="800" height="600"></iframe>
+    
+    <h2>PDF with Parameters</h2>
+    <p>Testing PDF with viewer parameters:</p>
+    <iframe src="http://localhost:5031/uploads/file-1759055459248-422698810.pdf#toolbar=0&navpanes=0&scrollbar=0" width="800" height="600"></iframe>
+    
+    <h2>Direct Link</h2>
+    <p>If iframes don't work, try opening directly:</p>
+    <a href="http://localhost:5031/uploads/file-1759055459248-422698810.pdf" target="_blank">Open PDF in new tab</a>
+</body>
+</html>

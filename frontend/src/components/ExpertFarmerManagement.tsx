@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { expertFarmerAPI, ExpertFarmer } from '@/lib/expertFarmerAPI';
+import { expertFarmerAPI } from '@/lib/expertFarmerAPI';
+import { User } from '@shared/types';
 import { 
   Star, 
   Award, 
@@ -35,8 +36,8 @@ interface FarmerFormData {
 }
 
 const ExpertFarmerManagement: React.FC = () => {
-  const [farmers, setFarmers] = useState<ExpertFarmer[]>([]);
-  const [selectedFarmer, setSelectedFarmer] = useState<ExpertFarmer | null>(null);
+  const [farmers, setFarmers] = useState<User[]>([]);
+  const [selectedFarmer, setSelectedFarmer] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [formData, setFormData] = useState<FarmerFormData>({
@@ -48,11 +49,15 @@ const ExpertFarmerManagement: React.FC = () => {
     eventsAttended: 0,
     yearsExperience: 0
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Load farmers from API
   useEffect(() => {
     const loadFarmers = async () => {
       try {
+        setLoading(true);
+        setError(null);
         // In a real implementation, this would fetch all farmers, not just featured ones
         const featuredFarmers = await expertFarmerAPI.getFeaturedExperts();
         // For demo, we'll add some non-featured farmers to the list
@@ -61,7 +66,12 @@ const ExpertFarmerManagement: React.FC = () => {
           {
             id: '5',
             name: 'Carlos Reyes',
-            location: 'Davao',
+            email: 'carlos.reyes@example.com',
+            role: 'public',
+            location: {
+              province: '',
+              municipality: 'Davao'
+            },
             specialization: 'Fruit Cultivation',
             achievement: 'Developed drought-resistant mango varieties',
             profilePicture: '/images/farmer 4.jpg',
@@ -69,13 +79,19 @@ const ExpertFarmerManagement: React.FC = () => {
             yearsExperience: 20,
             quote: 'Research and practice go hand in hand for agricultural success.',
             featured: false,
-            clickCount: 134,
-            impressions: 670
-          },
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          } as User,
           {
             id: '6',
             name: 'Ana Torres',
-            location: 'Bohol',
+            email: 'ana.torres@example.com',
+            role: 'public',
+            location: {
+              province: '',
+              municipality: 'Bohol'
+            },
             specialization: 'Coconut Farming',
             achievement: 'Sustainable coconut oil production pioneer',
             profilePicture: '/images/farmer 3.jpg',
@@ -83,13 +99,17 @@ const ExpertFarmerManagement: React.FC = () => {
             yearsExperience: 18,
             quote: 'Traditional methods with modern innovation create the best results.',
             featured: false,
-            clickCount: 89,
-            impressions: 456
-          }
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          } as User
         ];
         setFarmers(allFarmers);
-      } catch (error) {
-        console.error('Failed to load farmers:', error);
+      } catch (err) {
+        console.error('Failed to load farmers:', err);
+        setError('Failed to load farmers. Please try again later.');
+      } finally {
+        setLoading(false);
       }
     };
     
@@ -116,7 +136,7 @@ const ExpertFarmerManagement: React.FC = () => {
             ? { 
                 ...farmer, 
                 featured: newFeaturedStatus,
-                featuredAt: newFeaturedStatus ? new Date() : farmer.featuredAt
+                featuredAt: newFeaturedStatus ? new Date().toISOString() : undefined
               }
             : farmer
         ));
@@ -129,16 +149,16 @@ const ExpertFarmerManagement: React.FC = () => {
     }
   };
 
-  const handleEditFarmer = (farmer: ExpertFarmer) => {
+  const handleEditFarmer = (farmer: User) => {
     setSelectedFarmer(farmer);
     setFormData({
       name: farmer.name,
-      location: farmer.location,
-      specialization: farmer.specialization,
-      achievement: farmer.achievement,
+      location: farmer.location?.municipality || '',
+      specialization: farmer.specialization || '',
+      achievement: farmer.achievement || '',
       quote: farmer.quote || '',
-      eventsAttended: farmer.eventsAttended,
-      yearsExperience: farmer.yearsExperience,
+      eventsAttended: farmer.eventsAttended || 0,
+      yearsExperience: farmer.yearsExperience || 0,
       profilePicture: farmer.profilePicture
     });
     setIsEditDialogOpen(true);
@@ -168,13 +188,26 @@ const ExpertFarmerManagement: React.FC = () => {
       setIsEditDialogOpen(false);
     } else {
       // Add new farmer
-      const newFarmer: ExpertFarmer = {
+      const newFarmer: User = {
         id: Date.now().toString(),
-        ...formData,
+        name: formData.name,
+        email: '',
+        role: 'public',
+        location: {
+          province: '',
+          municipality: formData.location
+        },
+        specialization: formData.specialization,
+        achievement: formData.achievement,
+        profilePicture: formData.profilePicture,
+        eventsAttended: formData.eventsAttended,
+        yearsExperience: formData.yearsExperience,
+        quote: formData.quote,
         featured: false,
-        clickCount: 0,
-        impressions: 0
-      };
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      } as User;
       setFarmers(prev => [...prev, newFarmer]);
       setIsAddDialogOpen(false);
     }
@@ -198,8 +231,27 @@ const ExpertFarmerManagement: React.FC = () => {
   };
 
   const featuredFarmers = farmers.filter(f => f.featured);
-  const totalEngagement = farmers.reduce((sum, f) => sum + (f.clickCount || 0), 0);
+  const totalEngagement = farmers.reduce((sum, f) => sum + (f.eventsAttended || 0), 0);
   const totalImpressions = farmers.reduce((sum, f) => sum + (f.impressions || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -278,7 +330,7 @@ const ExpertFarmerManagement: React.FC = () => {
                       </Avatar>
                       <div>
                         <CardTitle className="text-lg">{farmer.name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{farmer.location}</p>
+                        <p className="text-sm text-muted-foreground">{farmer.location?.municipality}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -354,7 +406,7 @@ const ExpertFarmerManagement: React.FC = () => {
               <CardContent>
                 <div className="space-y-3">
                   {farmers
-                    .sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0))
+                    .sort((a, b) => (b.eventsAttended || 0) - (a.eventsAttended || 0))
                     .slice(0, 5)
                     .map((farmer, index) => (
                       <div key={farmer.id} className="flex items-center justify-between">
@@ -371,7 +423,7 @@ const ExpertFarmerManagement: React.FC = () => {
                           <span className="text-sm font-medium">{farmer.name}</span>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {farmer.clickCount} clicks
+                          {farmer.eventsAttended} events
                         </div>
                       </div>
                     ))}

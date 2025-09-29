@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Leaf, ArrowLeft, Facebook, Chrome, Linkedin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CARAGA_REGION_DATA } from '@shared/constants';
+import { authService, RegisterData, LoginCredentials } from '@/services/authService';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -20,6 +21,7 @@ const Login = () => {
   const [municipality, setMunicipality] = useState('');
   const [phone, setPhone] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -27,11 +29,12 @@ const Login = () => {
   const provinces = Object.keys(CARAGA_REGION_DATA);
   const municipalities = province ? CARAGA_REGION_DATA[province as keyof typeof CARAGA_REGION_DATA] || [] : [];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (isSignUp) {
       // Handle sign up
+      setIsLoading(true);
       const requiresAccessCode = userType === 'admin' || userType === 'aew';
       
       if (firstName && lastName && email && password && userType && province && municipality && (!requiresAccessCode || accessCode)) {
@@ -48,21 +51,58 @@ const Login = () => {
               description: "Invalid access code for this role",
               variant: "destructive"
             });
+            setIsLoading(false);
             return;
           }
         }
         
-        toast({
-          title: "Account Created Successfully",
-          description: `Welcome to SAKAP, ${firstName} ${lastName}! Location: ${municipality}, ${province}`,
-        });
-        // Switch to login view
-        setIsSignUp(false);
-        setFirstName('');
-        setLastName('');
-        setAccessCode('');
-        setMunicipality('');
-        setPhone('');
+        // Prepare registration data
+        const registerData: RegisterData = {
+          name: `${firstName} ${lastName}`,
+          email,
+          password,
+          role: userType as 'admin' | 'aew' | 'public'
+        };
+        
+        // Add location data to the request
+        const registrationPayload = {
+          ...registerData,
+          province,
+          municipality,
+          barangay: '' // We don't collect barangay in the form, so send empty string
+        };
+        
+        try {
+          const response = await authService.register(registrationPayload);
+          
+          if (response.success) {
+            toast({
+              title: "Account Created Successfully",
+              description: `Welcome to SAKAP, ${firstName} ${lastName}!`,
+            });
+            // Switch to login view
+            setIsSignUp(false);
+            setFirstName('');
+            setLastName('');
+            setAccessCode('');
+            setMunicipality('');
+            setPhone('');
+          } else {
+            toast({
+              title: "Sign Up Failed",
+              description: response.message || response.error || "An error occurred during registration",
+              variant: "destructive"
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Sign Up Failed",
+            description: "An error occurred during registration",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+        }
       } else {
         let missingField = 'Please fill in all required fields';
         if (requiresAccessCode && !accessCode) {
@@ -77,23 +117,52 @@ const Login = () => {
           description: missingField,
           variant: "destructive"
         });
+        setIsLoading(false);
       }
     } else {
       // Handle login
+      setIsLoading(true);
       if (email && password && userType) {
-        // Store user role in sessionStorage for persistence across navigation
-        sessionStorage.setItem('userRole', userType);
-        toast({
-          title: "Login Successful",
-          description: `Welcome to SAKAP as ${userType}!`,
-        });
-        navigate('/dashboard', { state: { userRole: userType } });
+        // Prepare login credentials
+        const credentials: LoginCredentials = {
+          email,
+          password
+        };
+        
+        try {
+          const response = await authService.login(credentials);
+          
+          if (response.success && response.data) {
+            // Store user role in sessionStorage for persistence across navigation
+            sessionStorage.setItem('userRole', userType);
+            toast({
+              title: "Login Successful",
+              description: `Welcome to SAKAP as ${userType}!`,
+            });
+            navigate('/dashboard', { state: { userRole: userType } });
+          } else {
+            toast({
+              title: "Login Failed",
+              description: response.message || response.error || "Invalid credentials",
+              variant: "destructive"
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Login Failed",
+            description: "An error occurred during login",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+        }
       } else {
         toast({
           title: "Login Failed",
           description: "Please fill in all fields",
           variant: "destructive"
         });
+        setIsLoading(false);
       }
     }
   };
@@ -240,9 +309,10 @@ const Login = () => {
 
                     <Button 
                       type="submit" 
+                      disabled={isLoading}
                       className="w-full h-10 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-lg bg-gradient-to-r from-primary to-accent text-white"
                     >
-                      SIGN IN
+                      {isLoading ? 'SIGNING IN...' : 'SIGN IN'}
                     </Button>
                   </form>
 
@@ -494,9 +564,10 @@ const Login = () => {
                     <div className="pt-4">
                       <Button 
                         type="submit" 
+                        disabled={isLoading}
                         className="w-full h-12 rounded-lg text-sm font-semibold bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white transition-all duration-300"
                       >
-                        GET STARTED →
+                        {isLoading ? 'CREATING ACCOUNT...' : 'GET STARTED →'}
                       </Button>
                     </div>
                   </form>

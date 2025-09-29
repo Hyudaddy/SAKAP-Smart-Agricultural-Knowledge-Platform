@@ -13,6 +13,9 @@ export interface User {
   farmType?: string;
   profilePicture?: string;
   coverPhoto?: string;
+  province?: string;
+  municipality?: string;
+  barangay?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -86,6 +89,9 @@ export interface RegisterRequest {
   location?: UserLocation;
   phone?: string;
   accessCode?: string;
+  province?: string;
+  municipality?: string;
+  barangay?: string;
 }
 
 // API Response types
@@ -113,13 +119,23 @@ export interface Activity {
   id: string;
   title: string;
   description: string;
-  date: Date;
+  date: string; // Changed from Date to string to match backend
   location: string;
   organizer: string;
+  organizerId: string; // Changed to match frontend naming convention
   capacity?: number;
-  registered?: number;
-  imageUrl?: string;
+  registered: number; // Changed to match frontend naming convention
+  registered_count?: number; // Keep for backward compatibility
+  imageUrl?: string; // Changed to match frontend naming convention
+  image_url?: string; // Keep for backward compatibility
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  tags?: string[];
+  createdAt: string; // Changed to match frontend naming convention
+  created_at?: string; // Keep for backward compatibility
+  updatedAt: string; // Changed to match frontend naming convention
+  updated_at?: string; // Keep for backward compatibility
+  type?: string; // Added for frontend display
+  webinarLink?: string; // Added for webinar activities
 }
 
 export interface LibraryContent {
@@ -134,6 +150,9 @@ export interface LibraryContent {
   uploadedBy: string;
   uploadedAt: Date;
   tags?: string[];
+  viewCount?: number;
+  downloadCount?: number;
+  likeCount?: number;
 }
 
 // Chatbot types

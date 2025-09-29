@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import FloatingChatbot from '@/components/FloatingChatbot';
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CARAGA_REGION_DATA } from '@shared/constants';
+import { userService } from '@/services/userService';
+import { User as UserType } from '@shared/types';
 
 const UserManagement = () => {
   const location = useLocation();
@@ -23,9 +25,31 @@ const UserManagement = () => {
   const [selectedProvince, setSelectedProvince] = useState('all');
   const [selectedMunicipality, setSelectedMunicipality] = useState('all');
   const [selectedUserLevel, setSelectedUserLevel] = useState('all');
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Caraga Region Provinces and Municipalities
   const caragaData = CARAGA_REGION_DATA;
+
+  // Load users from API
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const usersData = await userService.getAllUsers();
+        setUsers(usersData);
+      } catch (err) {
+        console.error('Failed to load users:', err);
+        setError('Failed to load users. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUsers();
+  }, []);
 
   // Function to calculate user skill level based on trainings attended
   const getUserLevel = (trainingsAttended: number) => {
@@ -35,177 +59,6 @@ const UserManagement = () => {
     if (trainingsAttended < 75) return { level: 'Proficient', color: 'bg-blue-100 text-blue-800', progress: ((trainingsAttended - 50) / 25) * 100 };
     return { level: 'Expert', color: 'bg-green-100 text-green-800', progress: 100 };
   };
-
-  const mockUsers = [
-    {
-      id: 'USR-001',
-      name: 'Juan Miguel Dela Cruz',
-      email: 'juan.delacruz@email.com',
-      userType: 'public',
-      address: 'Barangay Poblacion, Butuan City',
-      province: 'Agusan del Norte',
-      municipality: 'Butuan City',
-      joinDate: '2023-11-15',
-      lastLogin: '2024-01-08',
-      status: 'active',
-      trainingsAttended: 15,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'AEW-001',
-      name: 'Maria Elena Santos',
-      email: 'maria.santos@da.gov.ph',
-      userType: 'aew',
-      address: 'Municipal Agriculture Office, Prosperidad',
-      province: 'Agusan del Sur',
-      municipality: 'Prosperidad',
-      joinDate: '2023-08-10',
-      lastLogin: '2024-01-08',
-      status: 'active',
-      trainingsAttended: 32,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'ADM-001',
-      name: 'Carlos Antonio Reyes',
-      email: 'carlos.reyes@ati.da.gov.ph',
-      userType: 'admin',
-      address: 'ATI Caraga Regional Office, Butuan City',
-      province: 'Agusan del Norte',
-      municipality: 'Butuan City',
-      joinDate: '2023-06-01',
-      lastLogin: '2024-01-08',
-      status: 'active',
-      trainingsAttended: 45,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'USR-002',
-      name: 'Ana Rose Villanueva',
-      email: 'ana.villanueva@email.com',
-      userType: 'public',
-      address: 'Barangay San Roque, Surigao City',
-      province: 'Surigao del Norte',
-      municipality: 'Surigao City',
-      joinDate: '2023-12-01',
-      lastLogin: '2024-01-07',
-      status: 'active',
-      trainingsAttended: 28,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'AEW-002',
-      name: 'Roberto Alfonso Lopez',
-      email: 'roberto.lopez@da.gov.ph',
-      userType: 'aew',
-      address: 'Provincial Agriculture Office, Tandag City',
-      province: 'Surigao del Sur',
-      municipality: 'Tandag City',
-      joinDate: '2023-09-20',
-      lastLogin: '2024-01-05',
-      status: 'active',
-      trainingsAttended: 29,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'USR-003',
-      name: 'Elena Grace Morales',
-      email: 'elena.morales@email.com',
-      userType: 'public',
-      address: 'Barangay Centro, Basilisa',
-      province: 'Dinagat Islands',
-      municipality: 'Basilisa',
-      joinDate: '2023-10-15',
-      lastLogin: '2023-12-20',
-      status: 'inactive',
-      trainingsAttended: 8,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'USR-004',
-      name: 'Pedro Emmanuel Garcia',
-      email: 'pedro.garcia@email.com',
-      userType: 'public',
-      address: 'Barangay Mahaba, Bayugan City',
-      province: 'Agusan del Sur',
-      municipality: 'Bayugan City',
-      joinDate: '2023-07-10',
-      lastLogin: '2024-01-08',
-      status: 'active',
-      trainingsAttended: 52,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'USR-005',
-      name: 'Rosa Theresa Martinez',
-      email: 'rosa.martinez@email.com',
-      userType: 'public',
-      address: 'Barangay Poblacion, Bislig City',
-      province: 'Surigao del Sur',
-      municipality: 'Bislig City',
-      joinDate: '2023-05-20',
-      lastLogin: '2024-01-07',
-      status: 'active',
-      trainingsAttended: 78,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'USR-006',
-      name: 'Jose Mari Fernandez',
-      email: 'jose.fernandez@email.com',
-      userType: 'public',
-      address: 'Barangay New Visayas, Cabadbaran City',
-      province: 'Agusan del Norte',
-      municipality: 'Cabadbaran City',
-      joinDate: '2023-09-12',
-      lastLogin: '2024-01-08',
-      status: 'active',
-      trainingsAttended: 22,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'AEW-003',
-      name: 'Luz Carmen Aquino',
-      email: 'luz.aquino@da.gov.ph',
-      userType: 'aew',
-      address: 'Municipal Agriculture Office, Claver',
-      province: 'Surigao del Norte',
-      municipality: 'Claver',
-      joinDate: '2023-07-18',
-      lastLogin: '2024-01-07',
-      status: 'active',
-      trainingsAttended: 35,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'USR-007',
-      name: 'Benjamin Castro Ramos',
-      email: 'benjamin.ramos@email.com',
-      userType: 'public',
-      address: 'Barangay Poblacion, San Jose (Dinagat)',
-      province: 'Dinagat Islands',
-      municipality: 'San Jose',
-      joinDate: '2023-08-25',
-      lastLogin: '2024-01-06',
-      status: 'active',
-      trainingsAttended: 18,
-      avatar: '/placeholder.svg'
-    },
-    {
-      id: 'USR-008',
-      name: 'Carmen Luz Torres',
-      email: 'carmen.torres@email.com',
-      userType: 'public',
-      address: 'Barangay Upper Taguibo, Bunawan',
-      province: 'Agusan del Sur',
-      municipality: 'Bunawan',
-      joinDate: '2023-06-14',
-      lastLogin: '2024-01-08',
-      status: 'active',
-      trainingsAttended: 41,
-      avatar: '/placeholder.svg'
-    }
-  ];
 
   const provinces = Object.keys(caragaData);
   const municipalities = selectedProvince === 'all' 
@@ -226,27 +79,19 @@ const UserManagement = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusColor = (status: boolean) => {
+    return status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
 
-  const filteredUsers = mockUsers.filter(user => {
+  const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          user.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.municipality.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesUserType = selectedUserType === 'all' || user.userType === selectedUserType;
-    const matchesProvince = selectedProvince === 'all' || user.province === selectedProvince;
-    const matchesMunicipality = selectedMunicipality === 'all' || user.municipality === selectedMunicipality;
-    const matchesUserLevel = selectedUserLevel === 'all' || getUserLevel(user.trainingsAttended).level === selectedUserLevel;
+                         (user.location?.municipality || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesUserType = selectedUserType === 'all' || user.role === selectedUserType;
+    const matchesProvince = selectedProvince === 'all' || (user.location?.province || '') === selectedProvince;
+    const matchesMunicipality = selectedMunicipality === 'all' || (user.location?.municipality || '') === selectedMunicipality;
+    const matchesUserLevel = selectedUserLevel === 'all' || getUserLevel(user.trainingsAttended || 0).level === selectedUserLevel;
     return matchesSearch && matchesUserType && matchesProvince && matchesMunicipality && matchesUserLevel;
   });
 
@@ -259,7 +104,6 @@ const UserManagement = () => {
       'User Type',
       'Province',
       'Municipality',
-      'Address',
       'Join Date',
       'Last Login',
       'Status',
@@ -269,21 +113,20 @@ const UserManagement = () => {
     ];
 
     const csvData = filteredUsers.map(user => {
-      const userLevel = getUserLevel(user.trainingsAttended);
+      const userLevel = getUserLevel(user.trainingsAttended || 0);
       return [
         user.id,
         user.name,
         user.email,
-        user.userType.toUpperCase(),
-        user.province,
-        user.municipality,
-        user.address,
-        new Date(user.joinDate).toLocaleDateString(),
-        new Date(user.lastLogin).toLocaleDateString(),
-        user.status,
-        user.trainingsAttended,
-        user.userType === 'public' ? userLevel.level : 'N/A',
-        user.userType === 'public' ? `${userLevel.progress.toFixed(0)}%` : 'N/A'
+        user.role.toUpperCase(),
+        user.location?.province || '',
+        user.location?.municipality || '',
+        new Date(user.createdAt).toLocaleDateString(),
+        new Date(user.updatedAt).toLocaleDateString(),
+        user.isActive ? 'active' : 'inactive',
+        user.trainingsAttended || 0,
+        user.role === 'public' ? userLevel.level : 'N/A',
+        user.role === 'public' ? `${userLevel.progress.toFixed(0)}%` : 'N/A'
       ];
     });
 
@@ -311,7 +154,6 @@ const UserManagement = () => {
       'User Type',
       'Province',
       'Municipality',
-      'Address',
       'Join Date',
       'Last Login',
       'Status',
@@ -321,21 +163,20 @@ const UserManagement = () => {
     ];
 
     const csvData = filteredUsers.map(user => {
-      const userLevel = getUserLevel(user.trainingsAttended);
+      const userLevel = getUserLevel(user.trainingsAttended || 0);
       return [
         user.id,
         user.name,
         user.email,
-        user.userType.toUpperCase(),
-        user.province,
-        user.municipality,
-        user.address,
-        new Date(user.joinDate).toLocaleDateString(),
-        new Date(user.lastLogin).toLocaleDateString(),
-        user.status,
-        user.trainingsAttended,
-        user.userType === 'public' ? userLevel.level : 'N/A',
-        user.userType === 'public' ? `${userLevel.progress.toFixed(0)}%` : 'N/A'
+        user.role.toUpperCase(),
+        user.location?.province || '',
+        user.location?.municipality || '',
+        new Date(user.createdAt).toLocaleDateString(),
+        new Date(user.updatedAt).toLocaleDateString(),
+        user.isActive ? 'active' : 'inactive',
+        user.trainingsAttended || 0,
+        user.role === 'public' ? userLevel.level : 'N/A',
+        user.role === 'public' ? `${userLevel.progress.toFixed(0)}%` : 'N/A'
       ];
     });
 
@@ -357,9 +198,9 @@ const UserManagement = () => {
   };
 
   // Calculate level distribution for public users
-  const publicUsers = mockUsers.filter(user => user.userType === 'public');
+  const publicUsers = users.filter(user => user.role === 'public');
   const levelDistribution = userLevels.reduce((acc, level) => {
-    acc[level] = publicUsers.filter(user => getUserLevel(user.trainingsAttended).level === level).length;
+    acc[level] = publicUsers.filter(user => getUserLevel(user.trainingsAttended || 0).level === level).length;
     return acc;
   }, {} as Record<string, number>);
 
@@ -376,19 +217,26 @@ const UserManagement = () => {
     
     const municipalitiesForm = selectedProvinceForm ? caragaData[selectedProvinceForm as keyof typeof caragaData] || [] : [];
     
-    const handleCreateUser = () => {
-      // Validation logic here
-      console.log('Creating user with:', {
-        userType: selectedUserType,
-        firstName,
-        lastName,
-        email,
-        province: selectedProvinceForm,
-        municipality: selectedMunicipalityForm,
-        phone,
-        password,
-        accessCode
-      });
+    const handleCreateUser = async () => {
+      try {
+        // Validation logic here
+        console.log('Creating user with:', {
+          userType: selectedUserType,
+          firstName,
+          lastName,
+          email,
+          province: selectedProvinceForm,
+          municipality: selectedMunicipalityForm,
+          phone,
+          password,
+          accessCode
+        });
+        
+        // Close the dialog after creating user
+        // In a real implementation, you would call the userService.createUser method
+      } catch (error) {
+        console.error('Error creating user:', error);
+      }
     };
     
     return (
@@ -582,6 +430,37 @@ const UserManagement = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-background w-full">
+        <Navigation userRole={userRole} />
+        <main className="flex-1 overflow-auto ml-64 p-8">
+          <div className="max-w-7xl mx-auto flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        </main>
+        <FloatingChatbot />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-background w-full">
+        <Navigation userRole={userRole} />
+        <main className="flex-1 overflow-auto ml-64 p-8">
+          <div className="max-w-7xl mx-auto flex justify-center items-center h-64">
+            <div className="text-center">
+              <p className="text-red-500 mb-4">{error}</p>
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+            </div>
+          </div>
+        </main>
+        <FloatingChatbot />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-background w-full">
       <Navigation userRole={userRole} />
@@ -638,14 +517,14 @@ const UserManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
             <Card className="bg-gradient-to-br from-primary/5 to-accent/10">
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold text-primary">{mockUsers.length}</div>
+                <div className="text-2xl font-bold text-primary">{users.length}</div>
                 <p className="text-xs text-muted-foreground">Total Users in Caraga</p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-purple-700">
-                  {mockUsers.filter(u => u.userType === 'admin').length}
+                  {users.filter(u => u.role === 'admin').length}
                 </div>
                 <p className="text-xs text-muted-foreground">ATI Admins</p>
               </CardContent>
@@ -653,7 +532,7 @@ const UserManagement = () => {
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-blue-700">
-                  {mockUsers.filter(u => u.userType === 'aew').length}
+                  {users.filter(u => u.role === 'aew').length}
                 </div>
                 <p className="text-xs text-muted-foreground">AEWs</p>
               </CardContent>
@@ -661,7 +540,7 @@ const UserManagement = () => {
             <Card className="bg-gradient-to-br from-green-50 to-green-100">
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-green-700">
-                  {mockUsers.filter(u => u.userType === 'public').length}
+                  {users.filter(u => u.role === 'public').length}
                 </div>
                 <p className="text-xs text-muted-foreground">Public Users</p>
               </CardContent>
@@ -669,7 +548,7 @@ const UserManagement = () => {
             <Card className="bg-gradient-to-br from-amber-50 to-amber-100">
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-amber-700">
-                  {publicUsers.filter(u => getUserLevel(u.trainingsAttended).level === 'Expert').length}
+                  {publicUsers.filter(u => getUserLevel(u.trainingsAttended || 0).level === 'Expert').length}
                 </div>
                 <p className="text-xs text-muted-foreground">Expert Farmers</p>
               </CardContent>
@@ -690,7 +569,7 @@ const UserManagement = () => {
             <CardContent>
               <div className="grid grid-cols-5 gap-4">
                 {provinces.map((province) => {
-                  const provinceUsers = mockUsers.filter(user => user.province === province);
+                  const provinceUsers = users.filter(user => (user.location?.province || '') === province);
                   return (
                     <div key={province} className="text-center p-4 rounded-lg border border-border/50 hover:shadow-soft transition-shadow bg-gradient-to-br from-primary/5 to-accent/5">
                       <div className="text-2xl font-bold text-primary mb-2">{provinceUsers.length}</div>
@@ -743,7 +622,7 @@ const UserManagement = () => {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, ID, address, or municipality..."
+                placeholder="Search by name, email, ID, or municipality..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -827,13 +706,13 @@ const UserManagement = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user) => {
-                    const userLevel = getUserLevel(user.trainingsAttended);
+                    const userLevel = getUserLevel(user.trainingsAttended || 0);
                     return (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.avatar} />
+                            <AvatarImage src={user.profilePicture} />
                             <AvatarFallback>
                               {user.name.split(' ').map(n => n[0]).join('')}
                             </AvatarFallback>
@@ -846,40 +725,37 @@ const UserManagement = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getUserTypeColor(user.userType)}>
-                          {user.userType.toUpperCase()}
+                        <Badge className={getUserTypeColor(user.role)}>
+                          {user.role.toUpperCase()}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm font-medium">{user.province}</div>
-                        <div className="text-xs text-primary">{user.municipality}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-48">
-                          {user.address}
-                        </div>
+                        <div className="text-sm font-medium">{user.location?.province || ''}</div>
+                        <div className="text-xs text-primary">{user.location?.municipality || ''}</div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="h-3 w-3" />
-                          {new Date(user.joinDate).toLocaleDateString()}
+                          {new Date(user.createdAt).toLocaleDateString()}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          {new Date(user.lastLogin).toLocaleDateString()}
+                          {new Date(user.updatedAt).toLocaleDateString()}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(user.status)}>
-                          {user.status}
+                        <Badge className={getStatusColor(user.isActive)}>
+                          {user.isActive ? 'active' : 'inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="text-center text-sm font-medium">
-                          {user.trainingsAttended}
+                          {user.trainingsAttended || 0}
                         </div>
                       </TableCell>
                       <TableCell>
-                        {user.userType === 'public' ? (
+                        {user.role === 'public' ? (
                           <div className="flex flex-col items-center space-y-1">
                             <Badge className={userLevel.color}>
                               <Star className="h-3 w-3 mr-1" />

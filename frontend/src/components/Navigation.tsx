@@ -139,6 +139,7 @@ const Navigation = ({ userRole }: NavigationProps) => {
       case 'admin':
         return [
           ...baseItems,
+          { title: 'Manage Library', url: '/manage-library', icon: BookOpen },
           { title: t('nav.activities'), url: '/activities', icon: Calendar },
           { title: t('nav.news'), url: '/news', icon: Newspaper },
           { title: t('nav.chatbotqa'), url: '/chatbot-qa', icon: HelpCircle },

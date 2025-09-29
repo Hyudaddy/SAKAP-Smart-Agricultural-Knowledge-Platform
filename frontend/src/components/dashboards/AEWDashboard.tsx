@@ -29,6 +29,8 @@ import {
   Search,
   Filter
 } from 'lucide-react';
+import { authService } from '@/services/authService';
+import { User } from '@shared/types';
 
 const AEWDashboard = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -58,6 +60,39 @@ const AEWDashboard = () => {
     profilePicture: '',
     coverPicture: ''
   });
+
+  // Load user data when component mounts
+  useEffect(() => {
+    const loadUserData = () => {
+      const userData = authService.getUserData();
+      if (userData) {
+        // Parse the user's full name
+        const nameParts = userData.name?.split(' ') || [];
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        // Update profile data with actual user information
+        setProfileData({
+          firstName: firstName || 'Maria',
+          lastName: lastName || 'Santos',
+          id: userData.id || 'AEW-001-NCR',
+          country: 'Philippines', // Default value
+          region: 'NCR', // Default value
+          province: userData.province || userData.location?.province || 'Metro Manila',
+          city: userData.municipality || userData.location?.municipality || 'Quezon City',
+          barangay: userData.barangay || userData.location?.barangay || 'Diliman',
+          certification: userData.certification || 'Level 2 Certified',
+          email: userData.email || 'maria.santos@da.gov.ph',
+          phone: userData.phone || '+63 917 123 4567',
+          specialization: userData.specialization || 'Rice & Vegetable Production',
+          profilePicture: userData.profilePicture || '',
+          coverPicture: userData.coverPhoto || ''
+        });
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   // Listen for language changes from localStorage
   useEffect(() => {
@@ -455,9 +490,37 @@ const AEWDashboard = () => {
     return tips[today % tips.length];
   };
 
-  const handleSaveProfile = () => {
-    // Here you would typically save to backend/localStorage
-    setIsEditingProfile(false);
+  const handleSaveProfile = async () => {
+    try {
+      // In a real application, you would save to backend
+      // For now, we'll update localStorage
+      const userData = authService.getUserData();
+      if (userData) {
+        // Update the user data with the new profile information
+        const updatedUserData = {
+          ...userData,
+          name: `${profileData.firstName} ${profileData.lastName}`,
+          email: profileData.email,
+          phone: profileData.phone,
+          certification: profileData.certification,
+          specialization: profileData.specialization,
+          profilePicture: profileData.profilePicture,
+          coverPhoto: profileData.coverPicture,
+          location: {
+            province: profileData.province,
+            municipality: profileData.city,
+            barangay: profileData.barangay
+          }
+        };
+        
+        // Update localStorage
+        authService.updateUserData(updatedUserData);
+      }
+      
+      setIsEditingProfile(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    }
   };
 
   // Handle file upload for profile and cover pictures
@@ -651,7 +714,7 @@ const AEWDashboard = () => {
                 <p>ID: {profileData.id}</p>
                 <div className="flex items-center justify-center space-x-1">
                   <MapPin className="h-3 w-3" />
-                  <span>{profileData.barangay}, {profileData.city}</span>
+                  <span>{profileData.barangay}, {profileData.city}, {profileData.province}</span>
                 </div>
                 <p>{profileData.specialization}</p>
               </div>

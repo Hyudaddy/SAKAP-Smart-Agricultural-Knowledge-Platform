@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import FloatingChatbot from '@/components/FloatingChatbot';
-import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, UserPlus, Filter, Check, X, Search } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Plus, Edit, Trash2, UserPlus, Filter, Check, X, Search, Link } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,19 +11,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ActivityService } from '@/services/activityService';
+import { Activity as ActivityType } from '@shared/types';
 
 const Activities = () => {
+  const navigate = useNavigate();
   const location = useLocation();
   const userRole = location.state?.userRole || sessionStorage.getItem('userRole') || 'public';
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activities, setActivities] = useState<ActivityType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // AEW Event Registration State
   const [isEventRegistrationOpen, setIsEventRegistrationOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [aewRegisteredEvents, setAewRegisteredEvents] = useState(new Set([1, 2])); // Mock registered events
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [aewRegisteredEvents, setAewRegisteredEvents] = useState<Set<string>>(new Set(['1', '2'])); // Mock registered events
   const [searchFarmers, setSearchFarmers] = useState('');
-  const [selectedFarmers, setSelectedFarmers] = useState([]);
+  const [selectedFarmers, setSelectedFarmers] = useState<any[]>([]);
   
   // Mock AEW profile data for location filtering
   const aewProfile = {
@@ -32,91 +38,27 @@ const Activities = () => {
     region: 'Caraga'
   };
 
-  const mockActivities = [
-    {
-      id: 1,
-      title: 'Sustainable Rice Farming Workshop',
-      description: 'Learn modern techniques for sustainable rice production, including water management and pest control.',
-      type: 'Workshop',
-      startDate: '2024-03-15',
-      endDate: '2024-03-17',
-      registrationStart: '2024-02-01',
-      registrationEnd: '2024-03-10',
-      location: 'Loreto Agricultural Center',
-      province: 'Agusan del Sur',
-      municipality: 'Loreto',
-      maxParticipants: 50,
-      registeredCount: 35,
-      status: 'registration-open',
-      instructor: 'Dr. Maria Santos',
-      aewsRegistered: 8,
-      publicRegistered: 27,
-      requiresAEWFirst: true
-    },
-    {
-      id: 2,
-      title: 'Organic Farming Seminar',
-      description: 'Introduction to organic farming methods, certification process, and market opportunities.',
-      type: 'Seminar',
-      startDate: '2024-03-22',
-      endDate: '2024-03-22',
-      registrationStart: '2024-02-15',
-      registrationEnd: '2024-03-18',
-      location: 'Prosperidad Training Hall',
-      province: 'Agusan del Sur',
-      municipality: 'Prosperidad',
-      maxParticipants: 100,
-      registeredCount: 78,
-      status: 'registration-open',
-      instructor: 'Prof. Juan Cruz',
-      aewsRegistered: 15,
-      publicRegistered: 63,
-      requiresAEWFirst: true
-    },
-    {
-      id: 3,
-      title: 'Climate-Smart Agriculture Training',
-      description: 'Training on climate adaptation strategies and resilient farming practices.',
-      type: 'Training',
-      startDate: '2024-04-05',
-      endDate: '2024-04-07',
-      registrationStart: '2024-03-01',
-      registrationEnd: '2024-04-01',
-      location: 'Bunawan Municipal Hall',
-      province: 'Agusan del Sur',
-      municipality: 'Bunawan',
-      maxParticipants: 75,
-      registeredCount: 17,
-      status: 'registration-open',
-      instructor: 'Dr. Ana Villanueva',
-      aewsRegistered: 5,
-      publicRegistered: 12,
-      requiresAEWFirst: true
-    },
-    {
-      id: 4,
-      title: 'Crop Disease Management Training',
-      description: 'Comprehensive training on identifying and managing common crop diseases.',
-      type: 'Training',
-      startDate: '2023-12-10',
-      endDate: '2023-12-12',
-      registrationStart: '2023-11-01',
-      registrationEnd: '2023-12-05',
-      location: 'Bataan Research Station',
-      province: 'Bataan',
-      municipality: 'Bataan',
-      maxParticipants: 60,
-      registeredCount: 60,
-      status: 'completed',
-      instructor: 'Dr. Ana Villanueva',
-      aewsRegistered: 12,
-      publicRegistered: 48,
-      requiresAEWFirst: false
-    }
-  ];
+  // Fetch activities from the backend
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setLoading(true);
+        const fetchedActivities = await ActivityService.getAllActivities();
+        setActivities(fetchedActivities);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching activities:', err);
+        setError('Failed to load activities. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivities();
+  }, []);
 
   // Location-based farmers (filtered by AEW's location)
-  const getLocationBasedFarmers = (aewLocation) => {
+  const getLocationBasedFarmers = (aewLocation: any) => {
     // Mock farmers data - in real app this would come from an API
     const allFarmers = [
       {
@@ -187,7 +129,7 @@ const Activities = () => {
   const availableFarmers = getLocationBasedFarmers(aewProfile);
 
   // Event registration handlers
-  const handleEventClick = (event) => {
+  const handleEventClick = (event: any) => {
     if (userRole === 'aew') {
       setSelectedEvent(event);
       setIsEventRegistrationOpen(true);
@@ -196,13 +138,13 @@ const Activities = () => {
     }
   };
 
-  const handleAEWRegistration = (eventId) => {
+  const handleAEWRegistration = (eventId: string) => {
     setAewRegisteredEvents(new Set([...aewRegisteredEvents, eventId]));
     // In a real app, this would make an API call
     console.log(`AEW registered for event ${eventId}`);
   };
 
-  const handleFarmerSelection = (farmer) => {
+  const handleFarmerSelection = (farmer: any) => {
     const isSelected = selectedFarmers.find(f => f.id === farmer.id);
     if (isSelected) {
       setSelectedFarmers(selectedFarmers.filter(f => f.id !== farmer.id));
@@ -231,8 +173,8 @@ const Activities = () => {
     switch (status) {
       case 'upcoming':
         return 'bg-blue-100 text-blue-800';
-      case 'registration-open':
-        return 'bg-green-100 text-green-800';
+      case 'ongoing':
+        return 'bg-yellow-100 text-yellow-800';
       case 'completed':
         return 'bg-gray-100 text-gray-800';
       case 'cancelled':
@@ -242,60 +184,49 @@ const Activities = () => {
     }
   };
 
-  const filteredActivities = mockActivities.filter(activity => {
+  const filteredActivities = activities.filter(activity => {
     const matchesSearch = activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          activity.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = selectedStatus === 'all' || activity.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
 
-  const CreateActivityForm = () => (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="title">Activity Title</Label>
-        <Input id="title" placeholder="Enter activity title" />
+  // Remove the handleCreateActivity function as it's moved to the CreateActivity page
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-background w-full">
+        <Navigation userRole={userRole} />
+        <main className="flex-1 overflow-auto ml-64 p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-center h-64">
+              <p>Loading activities...</p>
+            </div>
+          </div>
+        </main>
+        <FloatingChatbot />
       </div>
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea id="description" placeholder="Describe the activity" />
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-background w-full">
+        <Navigation userRole={userRole} />
+        <main className="flex-1 overflow-auto ml-64 p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-center h-64">
+              <div>
+                <p className="text-red-500 mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()}>Retry</Button>
+              </div>
+            </div>
+          </div>
+        </main>
+        <FloatingChatbot />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="type">Type</Label>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="workshop">Workshop</SelectItem>
-              <SelectItem value="seminar">Seminar</SelectItem>
-              <SelectItem value="webinar">Webinar</SelectItem>
-              <SelectItem value="training">Training</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="max-participants">Max Participants</Label>
-          <Input id="max-participants" type="number" placeholder="50" />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="start-date">Start Date</Label>
-          <Input id="start-date" type="date" />
-        </div>
-        <div>
-          <Label htmlFor="end-date">End Date</Label>
-          <Input id="end-date" type="date" />
-        </div>
-      </div>
-      <div>
-        <Label htmlFor="location">Location</Label>
-        <Input id="location" placeholder="Enter location" />
-      </div>
-      <Button className="w-full">Create Activity</Button>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background w-full">
@@ -316,54 +247,46 @@ const Activities = () => {
               </p>
             </div>
             {userRole === 'admin' && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Activity
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Create New Activity</DialogTitle>
-                    <DialogDescription>
-                      Fill in the details to create a new training activity.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CreateActivityForm />
-                </DialogContent>
-              </Dialog>
+              <Button onClick={() => navigate('/create-activity')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Activity
+              </Button>
             )}
           </div>
 
           {/* Search and Filters */}
           <div className="mb-8 flex flex-col md:flex-row gap-4">
             <div className="flex-1">
+              <Label htmlFor="search-activities" className="sr-only">Search Activities</Label>
               <Input
+                id="search-activities"
                 placeholder="Search activities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full md:w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="registration-open">Registration Open</SelectItem>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
+            <div>
+              <Label htmlFor="status-filter" className="sr-only">Status Filter</Label>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-full md:w-48" id="status-filter">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="upcoming">Upcoming</SelectItem>
+                  <SelectItem value="ongoing">Ongoing</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Activities Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredActivities.map((activity) => {
               const isAEWRegistered = userRole === 'aew' && aewRegisteredEvents.has(activity.id);
-              const canRegisterFarmers = userRole === 'aew' && isAEWRegistered;
               
               return (
                 <Card 
@@ -378,7 +301,7 @@ const Activities = () => {
                   <CardHeader>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
-                        <Badge variant="outline">{activity.type}</Badge>
+                        <Badge variant="outline">{activity.type || 'Activity'}</Badge>
                         <Badge className={getStatusColor(activity.status)}>
                           {activity.status.replace('-', ' ')}
                         </Badge>
@@ -397,7 +320,7 @@ const Activities = () => {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>{new Date(activity.startDate).toLocaleDateString()}</span>
+                        <span>{new Date(activity.date).toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -405,20 +328,31 @@ const Activities = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>{activity.registeredCount}/{activity.maxParticipants} registered</span>
+                        <span>{activity.registered_count || 0}/{activity.capacity || 'Unlimited'} registered</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>By {activity.instructor}</span>
+                        <span>By {activity.organizer}</span>
                       </div>
+                      {/* Webinar Link - Only show for webinar type activities */}
+                      {activity.type === 'webinar' && activity.webinarLink && (
+                        <div className="flex items-center gap-2 md:col-span-2">
+                          <Link className="h-4 w-4 text-muted-foreground" />
+                          <a 
+                            href={activity.webinarLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline truncate"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Join Webinar
+                          </a>
+                        </div>
+                      )}
                     </div>
 
                     {userRole === 'admin' && (
                       <div className="pt-4 border-t">
-                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                          <span>AEWs: {activity.aewsRegistered}</span>
-                          <span>Public: {activity.publicRegistered}</span>
-                        </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" className="flex-1">
                             <Edit className="h-4 w-4 mr-2" />
@@ -437,40 +371,23 @@ const Activities = () => {
 
                     {userRole === 'aew' && (
                       <div className="pt-4 border-t">
-                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                          <span>Registration Deadline: {new Date(activity.registrationEnd).toLocaleDateString()}</span>
-                          {activity.requiresAEWFirst && (
-                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                              AEW First
-                            </span>
+                        <div className="space-y-2">
+                          {!isAEWRegistered ? (
+                            <Button 
+                              className="w-full" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAEWRegistration(activity.id);
+                              }}
+                            >
+                              Register as AEW
+                            </Button>
+                          ) : (
+                            <div className="text-center text-sm text-accent">
+                              ✓ You are registered. Click to manage farmer registrations.
+                            </div>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground mb-2">
-                          <span>AEWs: {activity.aewsRegistered} • Public: {activity.publicRegistered}</span>
-                        </div>
-                        {activity.status === 'completed' ? (
-                          <Button className="w-full" disabled>
-                            Completed
-                          </Button>
-                        ) : (
-                          <div className="space-y-2">
-                            {!isAEWRegistered ? (
-                              <Button 
-                                className="w-full" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAEWRegistration(activity.id);
-                                }}
-                              >
-                                Register as AEW
-                              </Button>
-                            ) : (
-                              <div className="text-center text-sm text-accent">
-                                ✓ You are registered. Click to manage farmer registrations.
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                     )}
 
@@ -507,15 +424,30 @@ const Activities = () => {
                     <h3 className="font-semibold text-base mb-2">Event Details</h3>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div className="space-y-1">
-                        <p><strong>Date:</strong> {new Date(selectedEvent.startDate).toLocaleDateString()}</p>
+                        <p><strong>Date:</strong> {new Date(selectedEvent.date).toLocaleDateString()}</p>
                         <p><strong>Location:</strong> {selectedEvent.location}</p>
-                        <p><strong>Instructor:</strong> {selectedEvent.instructor}</p>
+                        <p><strong>Instructor:</strong> {selectedEvent.organizer}</p>
                       </div>
                       <div className="space-y-1">
-                        <p><strong>Deadline:</strong> {new Date(selectedEvent.registrationEnd).toLocaleDateString()}</p>
-                        <p><strong>Capacity:</strong> {selectedEvent.registeredCount}/{selectedEvent.maxParticipants}</p>
+                        <p><strong>Capacity:</strong> {selectedEvent.registered_count || 0}/{selectedEvent.capacity || 'Unlimited'}</p>
                         <p><strong>Status:</strong> {selectedEvent.status.replace('-', ' ')}</p>
                       </div>
+                      {/* Webinar Link - Only show for webinar type events */}
+                      {selectedEvent.type === 'webinar' && selectedEvent.webinarLink && (
+                        <div className="space-y-1 md:col-span-2">
+                          <p><strong>Webinar Link:</strong> 
+                            <a 
+                              href={selectedEvent.webinarLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline ml-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Join Webinar
+                            </a>
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -555,8 +487,10 @@ const Activities = () => {
                       
                       {/* Search Farmers */}
                       <div className="relative">
+                        <Label htmlFor="search-farmers" className="sr-only">Search Farmers</Label>
                         <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                         <Input
+                          id="search-farmers"
                           placeholder="Search farmers..."
                           value={searchFarmers}
                           onChange={(e) => setSearchFarmers(e.target.value)}

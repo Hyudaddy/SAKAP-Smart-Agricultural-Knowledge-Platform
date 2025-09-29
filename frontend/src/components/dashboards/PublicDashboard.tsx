@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +30,8 @@ import {
   Camera,
   Upload
 } from 'lucide-react';
+import { authService } from '@/services/authService';
+import { User } from '@shared/types';
 
 const PublicDashboard = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -50,6 +52,38 @@ const PublicDashboard = () => {
     profilePicture: '',
     coverPicture: ''
   });
+
+  // Load user data when component mounts
+  useEffect(() => {
+    const loadUserData = () => {
+      const userData = authService.getUserData();
+      if (userData) {
+        // Parse the user's full name
+        const nameParts = userData.name?.split(' ') || [];
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        // Update profile data with actual user information
+        setProfileData({
+          firstName: firstName || 'Juan',
+          lastName: lastName || 'Dela Cruz',
+          id: userData.id || 'PUB-001-CAR',
+          country: 'Philippines', // Default value
+          region: 'CAR', // Default value
+          province: userData.province || userData.location?.province || 'Benguet',
+          city: userData.municipality || userData.location?.municipality || 'Baguio City',
+          barangay: userData.barangay || userData.location?.barangay || 'Burnham Park',
+          farmType: userData.farmType || 'Rice Farm',
+          email: userData.email || 'juan.delacruz@gmail.com',
+          phone: userData.phone || '+63 918 234 5678',
+          profilePicture: userData.profilePicture || '',
+          coverPicture: userData.coverPhoto || ''
+        });
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   // Sample events data
   const events = [
@@ -95,9 +129,36 @@ const PublicDashboard = () => {
     }
   ];
 
-  const handleSaveProfile = () => {
-    // Here you would typically save to backend/localStorage
-    setIsEditingProfile(false);
+  const handleSaveProfile = async () => {
+    try {
+      // In a real application, you would save to backend
+      // For now, we'll update localStorage
+      const userData = authService.getUserData();
+      if (userData) {
+        // Update the user data with the new profile information
+        const updatedUserData = {
+          ...userData,
+          name: `${profileData.firstName} ${profileData.lastName}`,
+          email: profileData.email,
+          phone: profileData.phone,
+          farmType: profileData.farmType,
+          profilePicture: profileData.profilePicture,
+          coverPhoto: profileData.coverPicture,
+          location: {
+            province: profileData.province,
+            municipality: profileData.city,
+            barangay: profileData.barangay
+          }
+        };
+        
+        // Update localStorage
+        authService.updateUserData(updatedUserData);
+      }
+      
+      setIsEditingProfile(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    }
   };
 
   // Handle file upload for profile and cover pictures
@@ -283,7 +344,7 @@ const PublicDashboard = () => {
                 <p>Farmer ID: {profileData.id}</p>
                 <div className="flex items-center justify-center space-x-1">
                   <MapPin className="h-3 w-3" />
-                  <span>{profileData.barangay}, {profileData.city}</span>
+                  <span>{profileData.barangay}, {profileData.city}, {profileData.province}</span>
                 </div>
                 <p>{profileData.farmType}</p>
               </div>

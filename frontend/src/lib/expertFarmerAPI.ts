@@ -1,21 +1,8 @@
-// API service for expert farmers
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+import { authService } from '@/services/authService';
+import { ExpertFarmer } from '@shared/types';
 
-export interface ExpertFarmer {
-  id: string;
-  name: string;
-  location: string;
-  specialization: string;
-  achievement: string;
-  profilePicture?: string;
-  eventsAttended: number;
-  yearsExperience: number;
-  quote?: string;
-  featured: boolean;
-  featuredAt?: Date;
-  clickCount?: number;
-  impressions?: number;
-}
+// API service for expert farmers
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 export const expertFarmerAPI = {
   // Get featured expert farmers for landing page
@@ -37,11 +24,12 @@ export const expertFarmerAPI = {
   // Update featured status (admin only)
   async updateFeaturedStatus(farmerId: string, featured: boolean, achievement?: string, quote?: string): Promise<boolean> {
     try {
+      const token = authService.getToken();
       const response = await fetch(`${API_BASE_URL}/users/${farmerId}/featured`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          // TODO: Add authorization header
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ featured, achievement, quote })
       });
@@ -82,9 +70,7 @@ function getMockExpertFarmers(): ExpertFarmer[] {
       yearsExperience: 15,
       quote: 'SAKAP helped me learn modern techniques while preserving traditional wisdom.',
       featured: true,
-      featuredAt: new Date('2024-01-01'),
-      clickCount: 245,
-      impressions: 1250
+      featuredAt: new Date('2024-01-01') as any
     },
     {
       id: '2',
@@ -97,9 +83,7 @@ function getMockExpertFarmers(): ExpertFarmer[] {
       yearsExperience: 12,
       quote: 'The knowledge I gained here transformed my farm and my family\'s future.',
       featured: true,
-      featuredAt: new Date('2024-01-15'),
-      clickCount: 189,
-      impressions: 890
+      featuredAt: new Date('2024-01-15') as any
     },
     {
       id: '3',
@@ -112,9 +96,7 @@ function getMockExpertFarmers(): ExpertFarmer[] {
       yearsExperience: 8,
       quote: 'Innovation meets tradition - that\'s what SAKAP taught me.',
       featured: true,
-      featuredAt: new Date('2024-01-20'),
-      clickCount: 67,
-      impressions: 340
+      featuredAt: new Date('2024-01-20') as any
     },
     {
       id: '4',
@@ -127,9 +109,7 @@ function getMockExpertFarmers(): ExpertFarmer[] {
       yearsExperience: 20,
       quote: 'Research and practice go hand in hand for agricultural success.',
       featured: true,
-      featuredAt: new Date('2024-01-25'),
-      clickCount: 134,
-      impressions: 670
+      featuredAt: new Date('2024-01-25') as any
     }
   ];
 }

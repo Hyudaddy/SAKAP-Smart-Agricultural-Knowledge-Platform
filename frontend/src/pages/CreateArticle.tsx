@@ -32,6 +32,10 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
+import { newsService } from '@/services/newsService';
+import { authService } from '@/services/authService';
+import type { News } from '@/services/newsService';
+import type { User } from '@shared/types';
 
 const CreateArticle = () => {
   const navigate = useNavigate();
@@ -121,7 +125,11 @@ const CreateArticle = () => {
   };
 
   const insertImageIntoContent = (imageUrl: string) => {
-    const imageMarkdown = `\n\n![Image](${imageUrl})\n\n`;
+    const imageMarkdown = `
+
+![Image](${imageUrl})
+
+`;
     setArticleData(prev => ({
       ...prev,
       content: prev.content + imageMarkdown
@@ -148,11 +156,10 @@ const CreateArticle = () => {
   const handleSaveDraft = async () => {
     setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // For now, we'll just show a message since draft saving isn't implemented in the backend
       toast({
-        title: "Draft saved",
-        description: "Your article has been saved as draft"
+        title: "Draft saving",
+        description: "Draft saving functionality will be implemented in a future update"
       });
     } finally {
       setIsSaving(false);
@@ -187,11 +194,43 @@ const CreateArticle = () => {
       return;
     }
 
+    // Check if user is authenticated
+    if (!authService.isAuthenticated()) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in as an admin to create articles",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setArticleData(prev => ({ ...prev, status: 'published' }));
+      // Get current user data
+      const currentUser: User | null = authService.getUserData();
+      
+      if (!currentUser) {
+        throw new Error("Unable to get current user data");
+      }
+
+      // Create the news article data to send to the backend
+      const newsData: Partial<News> = {
+        title: articleData.title,
+        content: articleData.content,
+        summary: articleData.subtitle,
+        author_id: currentUser.id,
+        author_name: currentUser.name || articleData.author,
+        category: articleData.category,
+        tags: articleData.tags.length > 0 ? articleData.tags : undefined,
+        is_published: true,
+        published_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Send the data to the backend
+      const createdNews = await newsService.createNews(newsData);
+      
       toast({
         title: "Article published",
         description: "Your article has been published successfully"
@@ -201,6 +240,13 @@ const CreateArticle = () => {
       setTimeout(() => {
         navigate('/news', { state: { userRole: 'admin' } });
       }, 1000);
+    } catch (error: any) {
+      console.error('Error publishing article:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to publish article. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsSaving(false);
     }

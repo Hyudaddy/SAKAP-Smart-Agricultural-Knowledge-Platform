@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -26,8 +27,11 @@ import {
   Camera,
   Upload
 } from 'lucide-react';
+import { authService } from '@/services/authService';
+import { User } from '@shared/types';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -44,12 +48,44 @@ const AdminDashboard = () => {
     region: 'NCR',
     province: 'Metro Manila',
     city: 'Quezon City',
-    barangay: 'Central Office',
+    barangay: 'Barangay',
     email: 'admin@ati.gov.ph',
     phone: '+63 2 8928 8741',
     profilePicture: '',
     coverPicture: ''
   });
+
+  // Load user data when component mounts
+  useEffect(() => {
+    const loadUserData = () => {
+      const userData = authService.getUserData();
+      if (userData) {
+        // Parse the user's full name
+        const nameParts = userData.name?.split(' ') || [];
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        // Update profile data with actual user information
+        setProfileData({
+          firstName: firstName || 'Admin',
+          lastName: lastName || 'User',
+          id: userData.id || 'ATI-ADMIN-001',
+          organization: userData.organization || 'Agricultural Training Institute',
+          country: 'Philippines', // Default value
+          region: 'NCR', // Default value
+          province: userData.province || userData.location?.province || 'Metro Manila',
+          city: userData.municipality || userData.location?.municipality || 'Quezon City',
+          barangay: userData.barangay || userData.location?.barangay || 'Barangay',
+          email: userData.email || 'admin@ati.gov.ph',
+          phone: userData.phone || '+63 2 8928 8741',
+          profilePicture: userData.profilePicture || '',
+          coverPicture: userData.coverPhoto || ''
+        });
+      }
+    };
+
+    loadUserData();
+  }, []);
 
   // Listen for language changes from localStorage
   useEffect(() => {
@@ -92,6 +128,8 @@ const AdminDashboard = () => {
         'dashboard.createTrainingDesc': 'Schedule new agricultural training events',
         'dashboard.manageQA': 'Manage Q&A',
         'dashboard.manageQADesc': 'Update chatbot knowledge base',
+        'dashboard.manageLibrary': 'Manage E-Library',
+        'dashboard.manageLibraryDesc': 'Add and organize educational resources',
         'stats.activeAEWs': 'Active AEWs',
         'stats.monthlyUsers': 'Monthly Users',
         'stats.trainingsCreated': 'Trainings Created',
@@ -135,6 +173,8 @@ const AdminDashboard = () => {
         'dashboard.createTrainingDesc': 'Mag-iskedyul ng bagong agricultural training events',
         'dashboard.manageQA': 'Pamahalaan ang Q&A',
         'dashboard.manageQADesc': 'I-update ang chatbot knowledge base',
+        'dashboard.manageLibrary': 'Pamahalaan ang E-Library',
+        'dashboard.manageLibraryDesc': 'Magdagdag at ayusin ang mga edukasyonal na resources',
         'stats.activeAEWs': 'Aktibong mga AEW',
         'stats.monthlyUsers': 'Buwanang mga User',
         'stats.trainingsCreated': 'Mga Training na Ginawa',
@@ -178,6 +218,8 @@ const AdminDashboard = () => {
         'dashboard.createTrainingDesc': 'Pag-iskedyul og bag-ong agricultural training events',
         'dashboard.manageQA': 'Pagdumala sa Q&A',
         'dashboard.manageQADesc': 'I-update ang chatbot knowledge base',
+        'dashboard.manageLibrary': 'Pagdumala sa E-Library',
+        'dashboard.manageLibraryDesc': 'Idugang ug ayuson ang mga edukasyonal nga resources',
         'stats.activeAEWs': 'Aktibong mga AEW',
         'stats.monthlyUsers': 'Binulanong mga User',
         'stats.trainingsCreated': 'Mga Training nga Nahimo',
@@ -259,8 +301,36 @@ const AdminDashboard = () => {
     return tips[today % tips.length];
   };
 
-  const handleSaveProfile = () => {
-    setIsEditingProfile(false);
+  const handleSaveProfile = async () => {
+    try {
+      // In a real application, you would save to backend
+      // For now, we'll update localStorage
+      const userData = authService.getUserData();
+      if (userData) {
+        // Update the user data with the new profile information
+        const updatedUserData = {
+          ...userData,
+          name: `${profileData.firstName} ${profileData.lastName}`,
+          email: profileData.email,
+          phone: profileData.phone,
+          organization: profileData.organization,
+          profilePicture: profileData.profilePicture,
+          coverPhoto: profileData.coverPicture,
+          location: {
+            province: profileData.province,
+            municipality: profileData.city,
+            barangay: profileData.barangay
+          }
+        };
+        
+        // Update localStorage
+        authService.updateUserData(updatedUserData);
+      }
+      
+      setIsEditingProfile(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+    }
   };
 
   // Handle file upload for profile and cover pictures
@@ -424,7 +494,7 @@ const AdminDashboard = () => {
                     <p>ID: {profileData.id}</p>
                     <div className="flex items-center justify-center space-x-1">
                       <MapPin className="h-3 w-3" />
-                      <span>{profileData.barangay}, {profileData.city}</span>
+                      <span>{profileData.barangay}, {profileData.city}, {profileData.province}</span>
                     </div>
                     <p>{profileData.organization}</p>
                   </div>
@@ -466,8 +536,8 @@ const AdminDashboard = () => {
               <CardContent className="space-y-2 flex-1 overflow-hidden">
                 {/* Calendar Grid */}
                 <div className="grid grid-cols-7 gap-0.5 text-center">
-                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
-                    <div key={day} className="h-5 flex items-center justify-center text-xs font-medium text-muted-foreground">
+                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+                    <div key={index} className="h-5 flex items-center justify-center text-xs font-medium text-muted-foreground">
                       {day}
                     </div>
                   ))}
@@ -564,18 +634,35 @@ const AdminDashboard = () => {
               <CardTitle>{t('dashboard.quickActions')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border border-primary/20 hover:shadow-soft transition-shadow cursor-pointer">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div 
+                  className="p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border border-primary/20 hover:shadow-soft transition-shadow cursor-pointer"
+                  onClick={() => navigate('/users')}
+                >
                   <Users className="h-8 w-8 text-primary mb-3" />
                   <h3 className="font-medium mb-1">{t('dashboard.manageUsers')}</h3>
                   <p className="text-sm text-muted-foreground">{t('dashboard.manageUsersDesc')}</p>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-accent/10 to-primary/10 rounded-lg border border-accent/20 hover:shadow-soft transition-shadow cursor-pointer">
+                <div 
+                  className="p-4 bg-gradient-to-br from-accent/10 to-primary/10 rounded-lg border border-accent/20 hover:shadow-soft transition-shadow cursor-pointer"
+                  onClick={() => navigate('/activities')}
+                >
                   <Calendar className="h-8 w-8 text-accent mb-3" />
                   <h3 className="font-medium mb-1">{t('dashboard.createTraining')}</h3>
                   <p className="text-sm text-muted-foreground">{t('dashboard.createTrainingDesc')}</p>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-primary-glow/10 to-primary/10 rounded-lg border border-primary-glow/20 hover:shadow-soft transition-shadow cursor-pointer">
+                <div 
+                  className="p-4 bg-gradient-to-br from-primary-glow/10 to-primary/10 rounded-lg border border-primary-glow/20 hover:shadow-soft transition-shadow cursor-pointer"
+                  onClick={() => navigate('/manage-library')}
+                >
+                  <BookOpen className="h-8 w-8 text-primary-glow mb-3" />
+                  <h3 className="font-medium mb-1">{t('dashboard.manageLibrary')}</h3>
+                  <p className="text-sm text-muted-foreground">{t('dashboard.manageLibraryDesc')}</p>
+                </div>
+                <div 
+                  className="p-4 bg-gradient-to-br from-primary-glow/10 to-primary/10 rounded-lg border border-primary-glow/20 hover:shadow-soft transition-shadow cursor-pointer"
+                  onClick={() => navigate('/chatbot-qa')}
+                >
                   <BookOpen className="h-8 w-8 text-primary-glow mb-3" />
                   <h3 className="font-medium mb-1">{t('dashboard.manageQA')}</h3>
                   <p className="text-sm text-muted-foreground">{t('dashboard.manageQADesc')}</p>
